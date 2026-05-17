@@ -49,9 +49,9 @@
     {
       "id": 4,
       "nombre": "Rodamiento de rueda",
-      "stock": 8,
+      "stock": 9,
       "minimo": 2,
-      "precio": 55000,
+      "precio": 10000,
       "categoria": "Suspensión"
     },
     {
@@ -107,16 +107,16 @@
     {
       "id": 1,
       "nombre": "Llave de tubo 17mm",
-      "estado": "En uso",
-      "asignada_a": "guillermo",
-      "hora_retiro": "18:59"
+      "estado": "Disponible",
+      "asignada_a": null,
+      "hora_retiro": null
     },
     {
       "id": 2,
       "nombre": "Prensa hidráulica",
-      "estado": "Disponible",
-      "asignada_a": null,
-      "hora_retiro": null
+      "estado": "En uso",
+      "asignada_a": "Santiago",
+      "hora_retiro": "19:16"
     },
     {
       "id": 3,
@@ -415,6 +415,21 @@
       "hora": "2026-05-16 19:00:00",
       "usuario": "Gustavo Cubillos",
       "accion": "Devolución herramienta ID 2"
+    },
+    {
+      "hora": "2026-05-16 19:16:08",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Retiro: Prensa hidráulica por Santiago"
+    },
+    {
+      "hora": "2026-05-16 19:16:17",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Devolución herramienta ID 1"
+    },
+    {
+      "hora": "2026-05-16 19:17:26",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Stock +1 (Precio $10000): Rodamiento de rueda"
     }
   ],
   "transacciones": [

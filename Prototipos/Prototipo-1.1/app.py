@@ -263,14 +263,22 @@ class PantallaRepuestos(tk.Frame):
 
         def guardar():
             try:
+                nombre = entries["Nombre"].get()
+                stock_inicial = int(entries["Stock inicial"].get())
+                precio = int(entries["Precio unitario"].get())
+                
                 RepuestosService.crear_repuesto(
-                    entries["Nombre"].get(),
+                    nombre,
                     entries["Categoría"].get(),
-                    int(entries["Stock inicial"].get()),
+                    stock_inicial,
                     int(entries["Stock mínimo"].get()),
-                    int(entries["Precio unitario"].get())
+                    precio
                 )
-                AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Nuevo repuesto: {entries['Nombre'].get()}")
+                
+                if stock_inicial > 0 and precio > 0:
+                    CuentasService.registrar_transaccion("Egreso", f"Compra repuesto: {nombre} ({stock_inicial} uds)", stock_inicial * precio)
+                
+                AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Nuevo repuesto: {nombre}")
                 show_message_box("Guardado", "Repuesto agregado exitosamente.", parent=win, msg_type="success")
                 win.destroy()
                 self._render()
@@ -310,6 +318,9 @@ class PantallaRepuestos(tk.Frame):
                     r["precio"] = precio
                     db.guardar()
                     
+                    if cant > 0 and precio > 0:
+                        CuentasService.registrar_transaccion("Egreso", f"Compra repuesto: {r['nombre']} ({cant} uds)", cant * precio)
+                        
                     AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Stock +{cant} (Precio ${precio}): {r['nombre']}")
                     show_message_box("Ingreso registrado", f"Agregadas {cant} unidades exitosamente.", parent=win, msg_type="success")
                     win.destroy()
@@ -497,13 +508,15 @@ class PantallaHistorial(tk.Frame):
         make_topbar(self, "🚗 Historial de Vehículos", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_CLARO)
 
         # Buscador
-        sf = tk.Frame(self, bg="#6A1B9A", padx=10, pady=10)
+        sf = tk.Frame(self, bg=AZUL_CLARO, padx=10, pady=4)
         sf.pack(fill="x")
-        tk.Label(sf, text="Placa:", font=FONT_BOTON, bg="#6A1B9A", fg=BLANCO).pack(side="left")
-        self.var_placa = tk.StringVar(value="TXA-123")
-        e = tk.Entry(sf, textvariable=self.var_placa, font=FONT_BOTON, bd=0, bg=BLANCO, fg=TEXTO_DARK, width=12)
-        e.pack(side="left", ipady=8, padx=8)
-        make_button(sf, "BUSCAR", self._buscar, color=AMARILLO, fg=AZUL, emoji="🔍", height=1).pack(side="left", padx=4)
+        tk.Label(sf, text="Placa:", font=FONT_BOTON, bg=AZUL_CLARO, fg=BLANCO).pack(side="left")
+        
+        placas = [v["placa"] for v in db.get_vehiculos()]
+        self.var_placa = tk.StringVar(value="Todas")
+        e = ttk.Combobox(sf, textvariable=self.var_placa, values=["Todas"] + placas, font=FONT_BOTON, state="readonly", width=12)
+        e.pack(side="left", padx=8, pady=4)
+        self.var_placa.trace("w", lambda *a: self._buscar())
 
         self.result_container = tk.Frame(self, bg=GRIS_BG)
         self.result_container.pack(fill="both", expand=True, padx=4, pady=4)
@@ -511,41 +524,54 @@ class PantallaHistorial(tk.Frame):
         canvas, vsb, self.result_frame = make_scrollable_container(self.result_container)
         vsb.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
+        
+        self._buscar()
 
     def _buscar(self):
         for w in self.result_frame.winfo_children():
             w.destroy()
         placa = self.var_placa.get().strip().upper()
 
-        vehiculo = VehiculosService.buscar_vehiculo(placa)
-        if vehiculo:
-            card = tk.Frame(self.result_frame, bg=BLANCO, padx=14, pady=10,
-                           highlightbackground="#6A1B9A", highlightthickness=2)
-            card.pack(fill="x", pady=6)
-            tk.Label(card, text=f"🚗  {placa} — {vehiculo['marca']} {vehiculo['modelo']} {vehiculo['año']}",
-                     font=FONT_BOTON, bg=BLANCO, fg=TEXTO_DARK).pack(anchor="w")
-            tk.Label(card, text=f"👤 {vehiculo['propietario']}  •  📞 {vehiculo['tel']}",
-                     font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED).pack(anchor="w", pady=2)
-
-        registros = VehiculosService.obtener_historial_vehiculo(placa)
-        if registros:
-            tk.Label(self.result_frame, text="📋 Historial de reparaciones", font=FONT_SUBTIT,
-                     bg=GRIS_BG, fg=TEXTO_DARK, pady=6).pack(anchor="w")
-            for reg in registros:
-                c = tk.Frame(self.result_frame, bg=BLANCO, padx=12, pady=10,
-                            highlightbackground=SOMBRA, highlightthickness=1)
-                c.pack(fill="x", pady=3)
-                tk.Label(c, text=f"📅 {reg['fecha']}  •  Placa: {placa}  •  🔧 {reg['mecanico']}",
-                         font=FONT_SMALL, bg=BLANCO, fg=TEXTO_MED).pack(anchor="w")
-                tk.Label(c, text=reg["trabajo"], font=FONT_BOTON, bg=BLANCO, fg=TEXTO_DARK).pack(anchor="w")
-                tk.Label(c, text=f"🔩 {reg['repuestos']}  •  💵 ${reg['costo']:,}",
-                         font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED).pack(anchor="w")
-        elif vehiculo:
-            tk.Label(self.result_frame, text="Sin reparaciones registradas.\nLas reparaciones se registran automáticamente\nal finalizar tareas en el Gestor.", font=FONT_BODY,
-                     bg=GRIS_BG, fg=TEXTO_MED).pack(pady=10)
+        if not placa or placa == "TODAS":
+            vehiculos = db.get_vehiculos()
+            for vehiculo in vehiculos:
+                card = tk.Frame(self.result_frame, bg=BLANCO, padx=14, pady=10,
+                               highlightbackground=AZUL_CLARO, highlightthickness=2)
+                card.pack(fill="x", pady=6)
+                tk.Label(card, text=f"🚗  {vehiculo['placa']} — {vehiculo['marca']} {vehiculo['modelo']} {vehiculo['año']}",
+                         font=FONT_BOTON, bg=BLANCO, fg=TEXTO_DARK).pack(anchor="w")
+                tk.Label(card, text=f"👤 {vehiculo['propietario']}  •  📞 {vehiculo['tel']}",
+                         font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED).pack(anchor="w", pady=2)
         else:
-            tk.Label(self.result_frame, text=f"⚠ Vehículo no encontrado: {placa}",
-                     font=FONT_BODY, bg=GRIS_BG, fg=ROJO).pack(pady=10)
+            vehiculo = VehiculosService.buscar_vehiculo(placa)
+            if vehiculo:
+                card = tk.Frame(self.result_frame, bg=BLANCO, padx=14, pady=10,
+                               highlightbackground=AZUL_CLARO, highlightthickness=2)
+                card.pack(fill="x", pady=6)
+                tk.Label(card, text=f"🚗  {placa} — {vehiculo['marca']} {vehiculo['modelo']} {vehiculo['año']}",
+                         font=FONT_BOTON, bg=BLANCO, fg=TEXTO_DARK).pack(anchor="w")
+                tk.Label(card, text=f"👤 {vehiculo['propietario']}  •  📞 {vehiculo['tel']}",
+                         font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED).pack(anchor="w", pady=2)
+
+                registros = VehiculosService.obtener_historial_vehiculo(placa)
+                if registros:
+                    tk.Label(self.result_frame, text="📋 Historial de reparaciones", font=FONT_SUBTIT,
+                             bg=GRIS_BG, fg=TEXTO_DARK, pady=6).pack(anchor="w")
+                    for reg in registros:
+                        c = tk.Frame(self.result_frame, bg=BLANCO, padx=12, pady=10,
+                                    highlightbackground=SOMBRA, highlightthickness=1)
+                        c.pack(fill="x", pady=3)
+                        tk.Label(c, text=f"📅 {reg['fecha']}  •  Placa: {placa}  •  🔧 {reg['mecanico']}",
+                                 font=FONT_SMALL, bg=BLANCO, fg=TEXTO_MED).pack(anchor="w")
+                        tk.Label(c, text=reg["trabajo"], font=FONT_BOTON, bg=BLANCO, fg=TEXTO_DARK).pack(anchor="w")
+                        tk.Label(c, text=f"🔩 {reg['repuestos']}  •  💵 ${reg['costo']:,}",
+                                 font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED).pack(anchor="w")
+                else:
+                    tk.Label(self.result_frame, text="Sin reparaciones registradas.\nLas reparaciones se registran automáticamente\nal finalizar tareas en el Gestor.", font=FONT_BODY,
+                             bg=GRIS_BG, fg=TEXTO_MED).pack(pady=10)
+            else:
+                tk.Label(self.result_frame, text=f"⚠ Vehículo no encontrado: {placa}",
+                         font=FONT_BODY, bg=GRIS_BG, fg=ROJO).pack(pady=10)
 
 
 # ──────────────────────────────────────────────
@@ -772,12 +798,12 @@ class PantallaCuentas(tk.Frame):
         canvas.pack(side="left", fill="both", expand=True)
 
         # Contenedor de resumen
-        self.sum_frame = tk.Frame(main_container, bg=NARANJA, padx=14, pady=10)
+        self.sum_frame = tk.Frame(main_container, bg=GRIS_BG, padx=10, pady=10)
         self.sum_frame.pack(fill="x")
         self._render_resumen()
 
         # Botones registros (3 toques - HU-002)
-        btn_frame = tk.Frame(main_container, bg=GRIS_BG, padx=10, pady=10)
+        btn_frame = tk.Frame(main_container, bg=GRIS_BG, padx=10, pady=5)
         btn_frame.pack(fill="x")
         tk.Label(btn_frame, text="Registrar en 3 toques:", font=FONT_SUBTIT, bg=GRIS_BG, fg=TEXTO_DARK).pack(anchor="w", pady=(0, 8))
 
@@ -785,17 +811,17 @@ class PantallaCuentas(tk.Frame):
             ("💵", "Ingreso reparación", "Ingreso"),
             ("🔩", "Compra repuesto", "Egreso"),
             ("🛠", "Servicio", "Egreso"),
-            ("💸", "Otro egreso", "Egreso"),
+            ("💸", "Gastos operativos", "Egreso"),
         ]:
             make_button(btn_frame, f"{emoji}  {txt}", lambda t=tipo, tx=txt: self._registrar(t, tx),
-                       color=VERDE if tipo == "Ingreso" else ROJO, size=FONT_BOTON, height=2).pack(fill="x", pady=4)
+                       color=AZUL_MED, size=FONT_BOTON, height=2).pack(fill="x", pady=4)
 
         # Historial
         make_separator(main_container, height=1).pack(fill="x", padx=8, pady=4)
         tk.Label(main_container, text="Últimas transacciones:", font=FONT_SUBTIT, bg=GRIS_BG, fg=TEXTO_DARK, pady=4).pack(anchor="w", padx=10)
 
         self.hist_frame = tk.Frame(main_container, bg=GRIS_BG)
-        self.hist_frame.pack(fill="both", expand=True, padx=4, pady=4)
+        self.hist_frame.pack(fill="both", expand=True, padx=10, pady=4)
 
         self._render_hist()
 
@@ -807,23 +833,23 @@ class PantallaCuentas(tk.Frame):
         for txt, val, color in [("💵 Ingresos", resumen["ingresos"], VERDE_CLARO),
                                  ("💸 Egresos", resumen["egresos"], ROJO),
                                  ("📊 Saldo", resumen["saldo"], AZUL_MED)]:
-            f = tk.Frame(self.sum_frame, bg=color, padx=12, pady=8)
-            f.pack(side="left", expand=True, fill="x", padx=4)
-            tk.Label(f, text=txt, font=FONT_SMALL, bg=color, fg=BLANCO).pack()
-            tk.Label(f, text=f"${val:,}", font=FONT_BOTON, bg=color, fg=BLANCO).pack()
+            f = tk.Frame(self.sum_frame, bg=BLANCO, padx=12, pady=12, highlightbackground=SOMBRA, highlightthickness=1)
+            f.pack(side="left", expand=True, fill="x", padx=2)
+            tk.Label(f, text=txt, font=FONT_SMALL, bg=BLANCO, fg=TEXTO_MED).pack()
+            tk.Label(f, text=f"${val:,}", font=FONT_BOTON, bg=BLANCO, fg=color).pack()
 
     def _render_hist(self):
         for w in self.hist_frame.winfo_children():
             w.destroy()
         for t in CuentasService.obtener_ultimas_transacciones():
-            color = "#E8F5E9" if t["tipo"] == "Ingreso" else "#FFEBEE"
             ico = "📗" if t["tipo"] == "Ingreso" else "📕"
-            c = tk.Frame(self.hist_frame, bg=color, padx=10, pady=8,
+            color_monto = VERDE if t["tipo"] == "Ingreso" else ROJO
+            c = tk.Frame(self.hist_frame, bg=BLANCO, padx=10, pady=8,
                         highlightbackground=SOMBRA, highlightthickness=1)
-            c.pack(fill="x", pady=2)
-            tk.Label(c, text=f"{ico} {t['concepto']}", font=FONT_BODY, bg=color, fg=TEXTO_DARK).pack(side="left")
-            tk.Label(c, text=f"${t['monto']:,}", font=FONT_BOTON, bg=color,
-                     fg=VERDE if t["tipo"] == "Ingreso" else ROJO).pack(side="right")
+            c.pack(fill="x", pady=3)
+            tk.Label(c, text=f"{ico} {t['concepto']}", font=FONT_BODY, bg=BLANCO, fg=TEXTO_DARK).pack(side="left")
+            tk.Label(c, text=f"${t['monto']:,}", font=FONT_BOTON, bg=BLANCO,
+                     fg=color_monto).pack(side="right")
 
     def _registrar(self, tipo, concepto):
         monto = ask_integer("Monto", f"¿Cuánto por '{concepto}'? (COP)", parent=self, min_val=0, max_val=999999999)
@@ -865,13 +891,12 @@ class PantallaPanel(tk.Frame):
         for txt, val, color, ico in [
             ("Tareas activas", metricas["tareas_activas"], AZUL_MED, "📋"),
             ("Herramientas en uso", metricas["herramientas_en_uso"], NARANJA, "🛠"),
-            ("Stock bajo", metricas["repuestos_stock_bajo"], ROJO, "⚠"),
+            ("Repuestos bajos de Stock", metricas["repuestos_stock_bajo"], ROJO, "⚠"),
         ]:
-            f = tk.Frame(sg, bg=color, padx=14, pady=12)
-            f.pack(side="top", expand=True, fill="x", padx=4, pady=4)
-            # Reorganizar tarjetas para que no colisionen verticalmente
-            tk.Label(f, text=f"{ico} {val}", font=("Segoe UI", 24, "bold"), bg=color, fg=BLANCO).pack(side="left", padx=10)
-            tk.Label(f, text=txt, font=FONT_BODY, bg=color, fg=BLANCO, wraplength=200).pack(side="left", anchor="w")
+            f = tk.Frame(sg, bg=GRIS_BG, padx=14, pady=6)
+            f.pack(side="top", expand=True, fill="x", padx=4, pady=2)
+            tk.Label(f, text=f"{ico} {val}", font=("Segoe UI", 24, "bold"), bg=GRIS_BG, fg=color).pack(side="left", padx=10)
+            tk.Label(f, text=txt, font=FONT_BODY, bg=GRIS_BG, fg=TEXTO_DARK, wraplength=200).pack(side="left", anchor="w")
 
         # Herramientas en uso
         make_separator(inner).pack(fill="x", padx=8, pady=4)

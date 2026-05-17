@@ -265,6 +265,50 @@ def ask_integer(title, message, parent=None, min_val=0, max_val=1000):
 
 
 def ask_string(title, message, default="", parent=None):
-    """Pedir entrada de texto al usuario"""
-    from tkinter import simpledialog
-    return simpledialog.askstring(title, message, initialvalue=default)
+    """Pedir entrada de texto al usuario con diseño personalizado"""
+    win = tk.Toplevel(parent)
+    win.title(title)
+    win.geometry("340x220")
+    win.configure(bg=BLANCO)
+    if parent:
+        win.transient(parent)
+    win.grab_set()
+
+    # Centrar la ventana
+    if parent:
+        win.update_idletasks()
+        x = parent.winfo_rootx() + (parent.winfo_width() // 2) - 170
+        y = parent.winfo_rooty() + (parent.winfo_height() // 2) - 110
+        win.geometry(f"+{x}+{y}")
+
+    tk.Label(win, text=title, font=FONT_SUBTIT, bg=BLANCO, fg=AZUL_MED, pady=12).pack()
+    tk.Label(win, text=message, font=FONT_BODY, bg=BLANCO, fg=TEXTO_DARK, wraplength=300).pack(pady=(0, 10))
+
+    e = tk.Entry(win, font=FONT_BODY, bd=0, bg=GRIS_CARD, fg=TEXTO_DARK, justify="center")
+    if default:
+        e.insert(0, default)
+    e.pack(fill="x", padx=30, ipady=8)
+    e.focus()
+
+    resultado = [None]
+    
+    def on_ok(event=None):
+        val = e.get()
+        if val is not None:
+            resultado[0] = val
+            win.destroy()
+
+    def on_cancel(event=None):
+        win.destroy()
+
+    btn_frame = tk.Frame(win, bg=BLANCO, pady=15)
+    btn_frame.pack(fill="x")
+    
+    make_button(btn_frame, "Cancelar", on_cancel, color=ROJO, size=FONT_SMALL, height=1, width=10).pack(side="left", padx=10)
+    make_button(btn_frame, "Aceptar", on_ok, color=VERDE_CLARO, size=FONT_SMALL, height=1, width=10).pack(side="right", padx=10)
+    
+    win.bind("<Return>", on_ok)
+    win.bind("<Escape>", on_cancel)
+    
+    parent.wait_window(win) if parent else win.wait_window(win)
+    return resultado[0]
