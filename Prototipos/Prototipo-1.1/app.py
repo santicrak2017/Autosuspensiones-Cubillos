@@ -1,7 +1,8 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox, simpledialog, filedialog
 from datetime import datetime, date
 import math
+from fpdf import FPDF
 
 # Importar capas
 from models_database import db
@@ -919,18 +920,64 @@ class PantallaPanel(tk.Frame):
             tk.Label(c, text=r["nombre"], font=FONT_BOTON, bg=BLANCO, fg=TEXTO_DARK).pack(side="left")
             tk.Label(c, text=f"Stock: {r['stock']} / Min: {r['minimo']}", font=FONT_BADGE, bg=color, fg=BLANCO, padx=4).pack(side="right")
 
-        # Log
+        # Exportar reporte PDF
         make_separator(inner).pack(fill="x", padx=8, pady=4)
-        tk.Label(inner, text="🔍 Actividad reciente", font=FONT_SUBTIT, bg=GRIS_BG, fg=TEXTO_DARK, padx=10).pack(anchor="w")
-        log_frame = tk.Frame(inner, bg=TEXTO_DARK, padx=10, pady=8)
-        log_frame.pack(fill="x", padx=10, pady=4)
-        for entry in AuditoriaService.obtener_log(10):
-            tk.Label(log_frame, text=f"[{entry['hora']}] {entry['usuario']}: {entry['accion']}",
-                     font=FONT_MONOSPACE, bg=TEXTO_DARK, fg="#00E676", anchor="w").pack(fill="x")
+        make_button(inner, "📤 Exportar reporte", self._exportar_pdf, color=AZUL_MED).pack(fill="x", padx=10, pady=10)
 
-        make_separator(inner).pack(fill="x", padx=8, pady=4)
-        make_button(inner, "📤 Exportar reporte", lambda: messagebox.showinfo("✅", "En producción: PDF/Excel"),
-                   color=AZUL_MED).pack(fill="x", padx=10, pady=10)
+    def _exportar_pdf(self):
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf")],
+            title="Guardar Reporte",
+            initialfile=f"Reporte_Taller_{date.today().strftime('%Y_%m_%d')}.pdf"
+        )
+        if not filepath: return
+        
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            
+            # Título
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(200, 10, txt=f"Reporte Diario - Autosuspensiones Cubillos", ln=True, align='C')
+            pdf.set_font("Arial", '', 12)
+            pdf.cell(200, 10, txt=f"Fecha: {date.today().strftime('%d/%m/%Y')} - Generado por: {USUARIO_ACTUAL['nombre']}", ln=True, align='C')
+            pdf.ln(10)
+            
+            # Métricas
+            metricas = DashboardService.obtener_metricas_hoy()
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, txt="Resumen de Hoy:", ln=True)
+            pdf.set_font("Arial", '', 12)
+            pdf.cell(200, 8, txt=f"- Tareas Activas: {metricas['tareas_activas']}", ln=True)
+            pdf.cell(200, 8, txt=f"- Herramientas en Uso: {metricas['herramientas_en_uso']}", ln=True)
+            pdf.cell(200, 8, txt=f"- Repuestos con Stock Bajo: {metricas['repuestos_stock_bajo']}", ln=True)
+            pdf.ln(10)
+            
+            # Cuentas Rápidas
+            resumen_cuentas = CuentasService.obtener_resumen()
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, txt="Balance de Caja:", ln=True)
+            pdf.set_font("Arial", '', 12)
+            pdf.cell(200, 8, txt=f"- Ingresos: ${resumen_cuentas['ingresos']:,}", ln=True)
+            pdf.cell(200, 8, txt=f"- Egresos: ${resumen_cuentas['egresos']:,}", ln=True)
+            pdf.cell(200, 8, txt=f"- Saldo Total: ${resumen_cuentas['saldo']:,}", ln=True)
+            pdf.ln(10)
+            
+            # Actividad Reciente
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, txt="Registro de Operaciones Recientes:", ln=True)
+            pdf.set_font("Arial", '', 10)
+            log = AuditoriaService.obtener_log(15)
+            for entry in log:
+                # Filtrar caracteres que fpdf1.7.2 pudiese no soportar (emojis)
+                texto_limpio = f"[{entry['hora']}] {entry['usuario']}: {entry['accion']}".encode('latin-1', 'replace').decode('latin-1')
+                pdf.cell(200, 6, txt=texto_limpio, ln=True)
+                
+            pdf.output(filepath)
+            messagebox.showinfo("Exportado", f"El reporte se ha guardado exitosamente en:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al generar el PDF:\n{str(e)}")
 
 
 # ──────────────────────────────────────────────

@@ -65,9 +65,9 @@
     {
       "id": 6,
       "nombre": "Buje de suspensión",
-      "stock": 3,
+      "stock": 4,
       "minimo": 2,
-      "precio": 28000,
+      "precio": 20000,
       "categoria": "Suspensión"
     },
     {
@@ -430,6 +430,11 @@
       "hora": "2026-05-16 19:17:26",
       "usuario": "Gustavo Cubillos",
       "accion": "Stock +1 (Precio $10000): Rodamiento de rueda"
+    },
+    {
+      "hora": "2026-05-16 20:08:17",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Stock +1 (Precio $20000): Buje de suspensión"
     }
   ],
   "transacciones": [
@@ -460,6 +465,12 @@
     {
       "tipo": "Ingreso",
       "concepto": "Ingreso reparación",
+      "monto": 20000,
+      "fecha": "2026-05-16"
+    },
+    {
+      "tipo": "Egreso",
+      "concepto": "Compra repuesto: Buje de suspensión (1 uds)",
       "monto": 20000,
       "fecha": "2026-05-16"
     }
