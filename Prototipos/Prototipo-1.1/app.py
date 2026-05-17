@@ -810,8 +810,8 @@ class PantallaCuentas(tk.Frame):
         for emoji, txt, tipo in [
             ("💵", "Ingreso reparación", "Ingreso"),
             ("🔩", "Compra repuesto", "Egreso"),
-            ("🛠", "Servicio", "Egreso"),
-            ("💸", "Gastos operativos", "Egreso"),
+            ("🛠", "Gastos operativos", "Egreso"),
+            ("💸", "Otro egreso", "Egreso"),
         ]:
             make_button(btn_frame, f"{emoji}  {txt}", lambda t=tipo, tx=txt: self._registrar(t, tx),
                        color=AZUL_MED, size=FONT_BOTON, height=2).pack(fill="x", pady=4)
