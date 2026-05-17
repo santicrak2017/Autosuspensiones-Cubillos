@@ -25,7 +25,7 @@
     {
       "id": 1,
       "nombre": "Amortiguador delantero",
-      "stock": 9,
+      "stock": 12,
       "minimo": 2,
       "precio": 85000,
       "categoria": "Suspensión"
@@ -49,7 +49,7 @@
     {
       "id": 4,
       "nombre": "Rodamiento de rueda",
-      "stock": 5,
+      "stock": 8,
       "minimo": 2,
       "precio": 55000,
       "categoria": "Suspensión"
@@ -107,9 +107,9 @@
     {
       "id": 1,
       "nombre": "Llave de tubo 17mm",
-      "estado": "Disponible",
-      "asignada_a": null,
-      "hora_retiro": null
+      "estado": "En uso",
+      "asignada_a": "guillermo",
+      "hora_retiro": "18:59"
     },
     {
       "id": 2,
@@ -128,9 +128,9 @@
     {
       "id": 4,
       "nombre": "Gato hidráulico 3T",
-      "estado": "Disponible",
-      "asignada_a": null,
-      "hora_retiro": null
+      "estado": "En uso",
+      "asignada_a": "Gustavo Cubillos",
+      "hora_retiro": "17:43"
     },
     {
       "id": 5,
@@ -340,6 +340,81 @@
       "hora": "2026-05-14 16:33:07",
       "usuario": "Gustavo Cubillos",
       "accion": "Stock +5: Amortiguador delantero"
+    },
+    {
+      "hora": "2026-05-16 17:43:20",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Retiro: Llave de tubo 17mm"
+    },
+    {
+      "hora": "2026-05-16 17:43:27",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Retiro: Gato hidráulico 3T"
+    },
+    {
+      "hora": "2026-05-16 17:43:30",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Devolución herramienta ID 4"
+    },
+    {
+      "hora": "2026-05-16 17:43:40",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Retiro: Prensa hidráulica"
+    },
+    {
+      "hora": "2026-05-16 17:43:44",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Devolución herramienta ID 2"
+    },
+    {
+      "hora": "2026-05-16 17:43:49",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Devolución herramienta ID 1"
+    },
+    {
+      "hora": "2026-05-16 17:43:52",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Retiro: Gato hidráulico 3T"
+    },
+    {
+      "hora": "2026-05-16 17:47:08",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Retiro: Prensa hidráulica"
+    },
+    {
+      "hora": "2026-05-16 17:58:25",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Stock +2: Amortiguador delantero"
+    },
+    {
+      "hora": "2026-05-16 18:00:21",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Egreso: Servicio $10,000"
+    },
+    {
+      "hora": "2026-05-16 18:00:30",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Ingreso: Ingreso reparación $20,000"
+    },
+    {
+      "hora": "2026-05-16 18:02:10",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Stock +3: Rodamiento de rueda"
+    },
+    {
+      "hora": "2026-05-16 18:03:03",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Stock +1: Amortiguador delantero"
+    },
+    {
+      "hora": "2026-05-16 18:59:44",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Retiro: Llave de tubo 17mm por guillermo"
+    },
+    {
+      "hora": "2026-05-16 19:00:00",
+      "usuario": "Gustavo Cubillos",
+      "accion": "Devolución herramienta ID 2"
     }
   ],
   "transacciones": [
@@ -360,6 +435,18 @@
       "concepto": "Cambio aceite TXB-456",
       "monto": 65000,
       "fecha": "2026-05-02"
+    },
+    {
+      "tipo": "Egreso",
+      "concepto": "Servicio",
+      "monto": 10000,
+      "fecha": "2026-05-16"
+    },
+    {
+      "tipo": "Ingreso",
+      "concepto": "Ingreso reparación",
+      "monto": 20000,
+      "fecha": "2026-05-16"
     }
   ]
 }

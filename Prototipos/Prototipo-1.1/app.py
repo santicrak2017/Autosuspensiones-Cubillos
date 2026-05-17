@@ -58,12 +58,12 @@ class MenuPrincipal(tk.Frame):
         grid.pack(fill="x", pady=4)
 
         MENUS = [
-            ("🔧", "Inventario\nRepuestos", AZUL_MED, "repuestos", ["propietario", "mecanico"]),
+            ("🔧", "Inventario\nRepuestos", AZUL_CLARO, "repuestos", ["propietario", "mecanico"]),
             ("🛠", "Inventario\nHerramientas", AZUL_CLARO, "herramientas", ["propietario", "mecanico"]),
-            ("🚗", "Historial\nVehículos", "#6A1B9A", "historial", ["propietario", "mecanico"]),
-            ("📋", "Gestor\nde Tareas", "#00695C", "tareas", ["propietario", "mecanico"]),
-            ("💰", "Cuentas\nRápidas", NARANJA, "cuentas", ["propietario"]),
-            ("📊", "Panel\nPropietario", ROJO, "panel", ["propietario"]),
+            ("🚗", "Historial\nVehículos", AZUL_CLARO, "historial", ["propietario", "mecanico"]),
+            ("📋", "Gestor\nde Tareas", AZUL_CLARO, "tareas", ["propietario", "mecanico"]),
+            ("💰", "Cuentas\nRápidas", AZUL_CLARO, "cuentas", ["propietario"]),
+            ("📊", "Panel\nPropietario", AZUL_CLARO, "panel", ["propietario"]),
         ]
 
         rol = USUARIO_ACTUAL["rol"]
@@ -71,10 +71,31 @@ class MenuPrincipal(tk.Frame):
         for emoji, txt, color, pant, roles in MENUS:
             if rol not in roles:
                 continue
-            btn = tk.Button(grid, text=f"{emoji}\n{txt}", font=FONT_BOTON,
-                           bg=color, fg=BLANCO, relief="flat", cursor="hand2",
-                           width=10, height=5, command=lambda p=pant: self.nav(p))
-            btn.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+            
+            c = tk.Canvas(grid, bg=GRIS_BG, highlightthickness=0, width=150, height=120, cursor="hand2")
+            c.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+            
+            def draw_btn(cv, bg_color, current_emoji, current_txt):
+                cv.delete("all")
+                w = cv.winfo_width() if cv.winfo_width() > 10 else 150
+                h = cv.winfo_height() if cv.winfo_height() > 10 else 120
+                radius = 25
+                x1, y1, x2, y2 = 4, 4, w-4, h-4
+                points = [
+                    x1+radius, y1,  x1+radius, y1,  x2-radius, y1,  x2-radius, y1,
+                    x2, y1,  x2, y1+radius,  x2, y1+radius,  x2, y2-radius,  x2, y2-radius,
+                    x2, y2,  x2-radius, y2,  x2-radius, y2,  x1+radius, y2,  x1+radius, y2,
+                    x1, y2,  x1, y2-radius,  x1, y2-radius,  x1, y1+radius,  x1, y1+radius,
+                    x1, y1
+                ]
+                cv.create_polygon(points, outline=bg_color, width=2, fill=bg_color, smooth=True, tags="btn")
+                cv.create_text(w/2, h/2, text=f"{current_emoji}\n{current_txt}", font=FONT_BOTON, fill=BLANCO, justify="center", tags="btn")
+            
+            draw_btn(c, color, emoji, txt)
+            c.bind("<Configure>", lambda e, cv=c, col_val=color, em=emoji, t=txt: draw_btn(cv, col_val, em, t))
+            c.bind("<Button-1>", lambda e, p=pant: self.nav(p))
+            c.tag_bind("btn", "<Button-1>", lambda e, p=pant: self.nav(p))
+
             col += 1
             if col == 2:
                 col = 0
@@ -112,26 +133,24 @@ class PantallaRepuestos(tk.Frame):
         self._build()
 
     def _build(self):
-        make_topbar(self, "🔧 Inventario de Repuestos", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_MED)
+        make_topbar(self, "🔧 Inventario de Repuestos", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_CLARO)
+
+        self._current_layout = None
+        self.bind("<Configure>", self._check_layout)
 
         # Buscador
-        bar = tk.Frame(self, bg=AZUL_MED, padx=10, pady=8)
-        bar.pack(fill="x")
-        tk.Label(bar, text="🔍", font=FONT_BODY, bg=AZUL_MED, fg=BLANCO).pack(side="left")
+        bar_busqueda = tk.Frame(self, bg=AZUL_MED, padx=10, pady=5)
+        bar_busqueda.pack(fill="x")
+        tk.Label(bar_busqueda, text="🔍", font=FONT_BODY, bg=AZUL_MED, fg=BLANCO).pack(side="left")
         self.var_search = tk.StringVar()
         self.var_search.trace("w", lambda *a: self._render())
-        e = tk.Entry(bar, textvariable=self.var_search, font=FONT_BODY, bd=0,
+        e = tk.Entry(bar_busqueda, textvariable=self.var_search, font=FONT_BODY, bd=0,
                      bg=BLANCO, fg=TEXTO_DARK, insertbackground=AZUL_MED)
         e.pack(side="left", fill="x", expand=True, ipady=6, padx=8)
 
-        # Botones de acción
-        btn_row = tk.Frame(self, bg=GRIS_BG, padx=10, pady=8)
-        btn_row.pack(fill="x")
-        if USUARIO_ACTUAL["rol"] == "propietario":
-            make_button(btn_row, "Agregar repuesto", self._agregar, emoji="➕",
-                       color=VERDE_CLARO, height=1).pack(side="left", padx=4)
-        make_button(btn_row, "Ver stock bajo ⚠", self._ver_bajos, emoji="",
-                   color=NARANJA, height=1).pack(side="left", padx=4)
+        # Botones de acción (el contenedor persistirá y sus hijos se redibujarán)
+        self.btn_row = tk.Frame(self, bg=GRIS_BG, padx=10, pady=8)
+        self.btn_row.pack(fill="x")
 
         # Contenedor scrollable
         self.lista_frame = tk.Frame(self, bg=GRIS_BG)
@@ -141,7 +160,29 @@ class PantallaRepuestos(tk.Frame):
         vsb.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
 
-        self._render()
+    def _check_layout(self, event):
+        if event.widget == self:
+            ancho = event.width
+            nuevo_layout = "PC" if ancho > 600 else "CELULAR"
+            if self._current_layout != nuevo_layout:
+                self._current_layout = nuevo_layout
+                self._render_buttons()
+                self._render()
+
+    def _render_buttons(self):
+        for w in self.btn_row.winfo_children():
+            w.destroy()
+
+        is_mobile = (self._current_layout == "CELULAR")
+        pack_side = "top" if is_mobile else "left"
+        pack_fill = "x" if is_mobile else "none"
+        pack_pady = 4 if is_mobile else 0
+
+        if USUARIO_ACTUAL["rol"] == "propietario":
+            make_button(self.btn_row, "Agregar repuesto", self._agregar, emoji="➕",
+                       color=VERDE_CLARO, height=1).pack(side=pack_side, fill=pack_fill, padx=4, pady=pack_pady)
+        make_button(self.btn_row, "Ver stock bajo ⚠", self._ver_bajos, emoji="",
+                   color=NARANJA, height=1).pack(side=pack_side, fill=pack_fill, padx=4, pady=pack_pady)
 
     def _render(self):
         for w in self.scroll_inner.winfo_children():
@@ -163,7 +204,7 @@ class PantallaRepuestos(tk.Frame):
 
             d = tk.Frame(card, bg=BLANCO)
             d.pack(fill="x", pady=2)
-            tk.Label(d, text=f"📦 {r['categoria']}  •  Min: {r['minimo']}  •  Precio: ${r['precio']:,}",
+            tk.Label(d, text=f"📦 {r['categoria']}  •  Min: {r['minimo']}",
                      font=FONT_SMALL, bg=BLANCO, fg=TEXTO_MED).pack(side="left")
 
             if r["stock"] <= r["minimo"]:
@@ -175,12 +216,16 @@ class PantallaRepuestos(tk.Frame):
             bf = tk.Frame(card, bg=BLANCO)
             bf.pack(fill="x", pady=(6, 0))
 
+            is_mobile = (self._current_layout == "CELULAR")
+            btn_side = "top" if is_mobile else "left"
+            btn_fill = "x" if is_mobile else "none"
+
             if USUARIO_ACTUAL["rol"] == "propietario":
                 make_button(bf, "Agregar unidades", lambda rid=r["id"]: self._agregar_stock(rid),
-                           color=VERDE_CLARO, emoji="➕", height=1, size=FONT_SMALL).pack(side="left", padx=(0, 4))
+                           color=VERDE_CLARO, emoji="➕", height=1, size=FONT_SMALL).pack(side=btn_side, fill=btn_fill, expand=is_mobile, padx=(0 if is_mobile else 0, 4 if not is_mobile else 0))
             else:
                 make_button(bf, "Usar en reparación", lambda rid=r["id"]: self._usar_repuesto(rid),
-                           color=AZUL_MED, emoji="🔧", height=1, size=FONT_SMALL).pack(side="left")
+                           color=AZUL_MED, emoji="🔧", height=1, size=FONT_SMALL).pack(side=btn_side, fill=btn_fill, expand=is_mobile)
 
     def _ver_bajos(self):
         for w in self.scroll_inner.winfo_children():
@@ -207,7 +252,7 @@ class PantallaRepuestos(tk.Frame):
         tk.Label(win, text="Nuevo Repuesto", font=FONT_SUBTIT, bg=BLANCO, fg=AZUL, pady=12).pack()
         
         campos = [("Nombre", ""), ("Categoría", "Suspensión"), ("Stock inicial", "0"),
-                  ("Stock mínimo", "2"), ("Precio unitario", "0")]
+                  ("Stock mínimo", "10"), ("Precio unitario", "0")]
         entries = {}
         for lbl, default in campos:
             tk.Label(win, text=lbl, font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED, anchor="w").pack(fill="x", padx=20)
@@ -235,16 +280,46 @@ class PantallaRepuestos(tk.Frame):
         make_button(win, "GUARDAR", guardar, emoji="💾", color=VERDE_CLARO).pack(fill="x", padx=20, pady=10)
 
     def _agregar_stock(self, rid):
-        cantidad = ask_integer("Agregar stock", "¿Cuántas unidades agregar?", parent=self, min_val=1, max_val=500)
-        if cantidad:
-            ok, msg = RepuestosService.actualizar_stock(rid, cantidad, "+")
-            if ok:
-                r = db.get_repuesto(rid)
-                AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Stock +{cantidad}: {r['nombre']}")
-                show_message_box("Stock actualizado", msg, parent=self, msg_type="success")
-                self._render()
-            else:
-                show_message_box("Error", msg, parent=self, msg_type="error")
+        win = tk.Toplevel(self)
+        win.title("Agregar unidades")
+        win.geometry("340x280")
+        win.configure(bg=BLANCO)
+        win.grab_set()
+
+        tk.Label(win, text="Ingreso de Stock", font=FONT_SUBTIT, bg=BLANCO, fg=AZUL, pady=12).pack()
+        
+        campos = [("Cantidad a agregar", "1"), ("Precio unitario ($)", "0")]
+        entries = {}
+        for lbl, default in campos:
+            tk.Label(win, text=lbl, font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED, anchor="w").pack(fill="x", padx=20)
+            e = tk.Entry(win, font=FONT_BODY, bd=0, bg=GRIS_CARD, fg=TEXTO_DARK)
+            e.insert(0, default)
+            e.pack(fill="x", padx=20, ipady=8, pady=(2, 8))
+            entries[lbl] = e
+
+        def guardar():
+            try:
+                cant = int(entries["Cantidad a agregar"].get())
+                precio = int(entries["Precio unitario ($)"].get())
+                if cant <= 0: return show_message_box("Error", "La cantidad debe ser mayor a 0", parent=win, msg_type="error")
+                if precio < 0: return show_message_box("Error", "El precio no puede ser negativo", parent=win, msg_type="error")
+                
+                ok, msg = RepuestosService.actualizar_stock(rid, cant, "+")
+                if ok:
+                    r = db.get_repuesto(rid)
+                    r["precio"] = precio
+                    db.guardar()
+                    
+                    AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Stock +{cant} (Precio ${precio}): {r['nombre']}")
+                    show_message_box("Ingreso registrado", f"Agregadas {cant} unidades exitosamente.", parent=win, msg_type="success")
+                    win.destroy()
+                    self._render()
+                else:
+                    show_message_box("Error", msg, parent=win, msg_type="error")
+            except ValueError:
+                show_message_box("Error", "Ingrese valores numéricos válidos", parent=win, msg_type="error")
+
+        make_button(win, "GUARDAR", guardar, emoji="💾", color=VERDE_CLARO).pack(fill="x", padx=20, pady=10)
 
     def _usar_repuesto(self, rid):
         cantidad = 1
@@ -266,30 +341,94 @@ class PantallaHerramientas(tk.Frame):
     def __init__(self, master, nav):
         super().__init__(master, bg=GRIS_BG)
         self.nav = nav
+        self.var_search = tk.StringVar()
+        self.var_search.trace("w", lambda *a: self._render())
         self._build()
 
     def _build(self):
         make_topbar(self, "🛠 Control de Herramientas", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_CLARO)
 
+        # Buscador
+        bar_busqueda = tk.Frame(self, bg=AZUL_CLARO, padx=10, pady=5)
+        bar_busqueda.pack(fill="x")
+        tk.Label(bar_busqueda, text="🔍", font=FONT_BODY, bg=AZUL_CLARO, fg=BLANCO).pack(side="left")
+        e_busqueda = tk.Entry(bar_busqueda, textvariable=self.var_search, font=FONT_BODY, bd=0,
+                     bg=BLANCO, fg=TEXTO_DARK, insertbackground=AZUL_CLARO)
+        e_busqueda.pack(side="left", fill="x", expand=True, ipady=6, padx=8)
+
+        # Botones de acción
+        if USUARIO_ACTUAL["rol"] == "propietario":
+            btn_row = tk.Frame(self, bg=GRIS_BG, padx=10, pady=8)
+            btn_row.pack(fill="x")
+            make_button(btn_row, "Agregar herramienta", self._agregar, emoji="➕",
+                       color=VERDE_CLARO, height=1).pack(side="left", padx=4)
+
         # Estadísticas
-        stats = tk.Frame(self, bg=AZUL_CLARO, padx=14, pady=6)
-        stats.pack(fill="x")
-        metricas = HerramientasService.obtener_estadisticas()
-        tk.Label(stats, text=f"✅ Disponibles: {metricas['disponibles']}   🔴 En uso: {metricas['en_uso']}", 
-                 font=FONT_BODY, bg=AZUL_CLARO, fg=BLANCO).pack(anchor="w")
+        self.stats = tk.Frame(self, bg=AZUL_CLARO, padx=14, pady=6)
+        self.stats.pack(fill="x")
 
         # Contenedor scrollable
-        canvas, vsb, self.inner = make_scrollable_container(self)
+        lista_frame = tk.Frame(self, bg=GRIS_BG)
+        lista_frame.pack(fill="both", expand=True, padx=6, pady=4)
+        
+        canvas, vsb, self.inner = make_scrollable_container(lista_frame)
         vsb.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
 
         self._render()
 
+    def _agregar(self):
+        win = tk.Toplevel(self)
+        win.title("Agregar Herramienta")
+        win.geometry("360x420")
+        win.configure(bg=BLANCO)
+        win.grab_set()
+
+        tk.Label(win, text="Nueva Herramienta", font=FONT_SUBTIT, bg=BLANCO, fg=AZUL_CLARO, pady=12).pack()
+        
+        campos = [("Nombre", ""), ("Marca", ""), ("Código", ""), ("Costo (COP)", "0")]
+        entries = {}
+        for lbl, default in campos:
+            tk.Label(win, text=lbl, font=FONT_BODY, bg=BLANCO, fg=TEXTO_MED, anchor="w").pack(fill="x", padx=20)
+            e = tk.Entry(win, font=FONT_BODY, bd=0, bg=GRIS_CARD, fg=TEXTO_DARK, insertbackground=AZUL_CLARO)
+            e.insert(0, default)
+            e.pack(fill="x", padx=20, ipady=8, pady=(2, 8))
+            entries[lbl] = e
+
+        def guardar():
+            try:
+                nombre_h = entries["Nombre"].get()
+                costo_h = int(entries["Costo (COP)"].get())
+                HerramientasService.crear_herramienta(
+                    nombre_h,
+                    entries["Marca"].get(),
+                    entries["Código"].get(),
+                    costo_h
+                )
+                AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Nueva herramienta: {nombre_h} (${costo_h:,})")
+                show_message_box("Guardado", "Herramienta agregada exitosamente.", parent=win, msg_type="success")
+                win.destroy()
+                self._render()
+            except ValueError as e:
+                show_message_box("Error", "Revise los campos ingresados.\nAsegúrese que Costo sea un número válido.", parent=win, msg_type="error")
+
+        make_button(win, "GUARDAR", guardar, emoji="💾", color=VERDE_CLARO).pack(fill="x", padx=20, pady=10)
+
     def _render(self):
+        # Actualizar stats
+        for w in self.stats.winfo_children():
+            w.destroy()
+        metricas = HerramientasService.obtener_estadisticas()
+        tk.Label(self.stats, text=f"✅ Disponibles: {metricas['disponibles']}   🔴 En uso: {metricas['en_uso']}", 
+                 font=FONT_BODY, bg=AZUL_CLARO, fg=BLANCO).pack(anchor="w")
+
         for w in self.inner.winfo_children():
             w.destroy()
 
-        for h in db.get_herramientas():
+        q = self.var_search.get().lower()
+        herramientas = [h for h in db.get_herramientas() if q in h["nombre"].lower() or q in h["marca"].lower() or q in h["codigo"].lower()]
+
+        for h in herramientas:
             disponible = h["estado"] == "Disponible"
             color_card = "#E8F5E9" if disponible else "#FFEBEE"
             color_badge = VERDE if disponible else ROJO
@@ -321,14 +460,18 @@ class PantallaHerramientas(tk.Frame):
                                color=VERDE_CLARO, emoji="📥", height=1, size=FONT_SMALL).pack(side="left")
 
     def _retirar(self, hid):
-        ok, msg = HerramientasService.retirar_herramienta(hid, USUARIO_ACTUAL["nombre"])
-        if ok:
-            h = db.get_herramienta(hid)
-            AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Retiro: {h['nombre']}")
-            show_message_box("Retiro Exitoso", msg, parent=self, msg_type="success")
-            self._render()
-        else:
-            show_message_box("Error", msg, parent=self, msg_type="warning")
+        nombre_persona = ask_string("Retirar Herramienta", "¿Quién retira esta herramienta?", parent=self)
+        if nombre_persona and nombre_persona.strip():
+            ok, msg = HerramientasService.retirar_herramienta(hid, nombre_persona.strip())
+            if ok:
+                h = db.get_herramienta(hid)
+                AuditoriaService.registrar_accion(USUARIO_ACTUAL["nombre"], f"Retiro: {h['nombre']} por {nombre_persona.strip()}")
+                show_message_box("Retiro Exitoso", msg, parent=self, msg_type="success")
+                self._render()
+            else:
+                show_message_box("Error", msg, parent=self, msg_type="warning")
+        elif nombre_persona is not None:
+            show_message_box("Error", "Debe ingresar un nombre", parent=self, msg_type="error")
 
     def _devolver(self, hid):
         ok, msg = HerramientasService.devolver_herramienta(hid, USUARIO_ACTUAL["nombre"], USUARIO_ACTUAL["rol"] == "propietario")
@@ -351,7 +494,7 @@ class PantallaHistorial(tk.Frame):
         self._build()
 
     def _build(self):
-        make_topbar(self, "🚗 Historial de Vehículos", back_cmd=lambda: self.nav("menu"), bg_color="#6A1B9A")
+        make_topbar(self, "🚗 Historial de Vehículos", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_CLARO)
 
         # Buscador
         sf = tk.Frame(self, bg="#6A1B9A", padx=10, pady=10)
@@ -416,7 +559,7 @@ class PantallaTareas(tk.Frame):
         self._build()
 
     def _build(self):
-        bar = make_topbar(self, "📋 Gestor de Tareas", back_cmd=lambda: self.nav("menu"), bg_color="#00695C")
+        bar = make_topbar(self, "📋 Gestor de Tareas", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_CLARO)
         
         if USUARIO_ACTUAL["rol"] == "propietario":
             make_button(bar, "Nueva tarea", self._nueva_tarea, color=AMARILLO, fg=AZUL, size=FONT_SMALL, height=1, emoji="➕").pack(side="right", padx=10)
@@ -622,7 +765,7 @@ class PantallaCuentas(tk.Frame):
         self._build()
 
     def _build(self):
-        make_topbar(self, "💰 Cuentas Rápidas", back_cmd=lambda: self.nav("menu"), bg_color=NARANJA)
+        make_topbar(self, "💰 Cuentas Rápidas", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_CLARO)
 
         canvas, vsb, main_container = make_scrollable_container(self)
         vsb.pack(side="right", fill="y")
@@ -706,7 +849,7 @@ class PantallaPanel(tk.Frame):
         self._build()
 
     def _build(self):
-        make_topbar(self, "📊 Panel del Propietario", back_cmd=lambda: self.nav("menu"), bg_color=ROJO)
+        make_topbar(self, "📊 Panel del Propietario", back_cmd=lambda: self.nav("menu"), bg_color=AZUL_CLARO)
 
         canvas, vsb, inner = make_scrollable_container(self)
         vsb.pack(side="right", fill="y")
