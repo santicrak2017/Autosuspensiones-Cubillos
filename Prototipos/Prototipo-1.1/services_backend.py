@@ -87,6 +87,23 @@ class HerramientasService:
         }
     
     @staticmethod
+    def crear_herramienta(nombre: str, marca: str, codigo: str, costo: int) -> int:
+        """Crear herramienta y registrar gasto"""
+        if not nombre.strip():
+            raise ValueError("El nombre no puede estar vacío")
+        if costo < 0:
+            raise ValueError("El costo no puede ser negativo")
+        
+        hid = db.agregar_herramienta(nombre.strip(), marca.strip(), codigo.strip())
+        db.guardar()
+        
+        # Registrar egreso automático
+        if costo > 0:
+            CuentasService.registrar_transaccion("Egreso", f"Compra Herramienta: {nombre}", costo)
+            
+        return hid
+
+    @staticmethod
     def retirar_herramienta(hid: int, mecanico: str) -> Tuple[bool, str]:
         """Retirar herramienta para uso"""
         h = db.get_herramienta(hid)

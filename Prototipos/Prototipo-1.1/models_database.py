@@ -129,6 +129,16 @@ class Database:
             r["stock"] = max(0, r["stock"] + cantidad)
             return True
         return False
+
+    def agregar_herramienta(self, nombre: str, marca: str, codigo: str) -> int:
+        """Agregar nueva herramienta y retornar ID"""
+        herramientas = self.db.get("herramientas", [])
+        nuevo_id = max(h["id"] for h in herramientas) + 1 if herramientas else 1
+        herramientas.append({
+            "id": nuevo_id, "nombre": nombre, "marca": marca, "codigo": codigo,
+            "estado": "Disponible", "asignada_a": None, "hora_retiro": None
+        })
+        return nuevo_id
     
     def get_herramientas(self) -> List[Dict]:
         """Obtener lista de herramientas"""

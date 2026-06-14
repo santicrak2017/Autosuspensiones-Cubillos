@@ -14,26 +14,48 @@ from ui_constants import *
 # ──────────────────────────────────────────────
 
 def make_button(parent, text, cmd, color=AZUL_MED, fg=BLANCO, size=FONT_BOTON, emoji="", width=None, height=2):
-    """Crear botón con estilo Material Design"""
+    """Crear botón redondeado simulado con Canvas"""
     label = f"{emoji}  {text}" if emoji else text
-    btn = tk.Button(parent, text=label, command=cmd, bg=color, fg=fg,
-                    font=size, relief="flat", bd=0, cursor="hand2",
-                    activebackground=AZUL_CLARO if color==AZUL_MED else AMARILLO_H if color==AMARILLO else color,
-                    activeforeground=BLANCO, padx=16, pady=10, height=height)
-    if width:
-        btn.config(width=width)
     
-    # Hover effects
+    # Calcular dimensiones estimadas
+    btn_width = 120 if not width else width * 10
+    btn_height = 40 if height <= 2 else height * 20
+    
+    cv = tk.Canvas(parent, bg=parent.cget("bg"), highlightthickness=0, height=btn_height)
+    # No establecemos width fijo si no se envía, para dejar que se expanda si usa pack(fill="x")
+    if width:
+        cv.config(width=btn_width)
+    
+    def draw_bg(c, bg_color):
+        c.delete("all")
+        w_curr = c.winfo_width() if c.winfo_width() > 10 else (btn_width if width else 150)
+        h_curr = c.winfo_height() if c.winfo_height() > 10 else btn_height
+        
+        radius = 15
+        x1, y1, x2, y2 = 2, 2, w_curr-2, h_curr-2
+        points = [
+            x1+radius, y1,  x1+radius, y1,  x2-radius, y1,  x2-radius, y1,
+            x2, y1,  x2, y1+radius,  x2, y1+radius,  x2, y2-radius,  x2, y2-radius,
+            x2, y2,  x2-radius, y2,  x2-radius, y2,  x1+radius, y2,  x1+radius, y2,
+            x1, y2,  x1, y2-radius,  x1, y2-radius,  x1, y1+radius,  x1, y1+radius,
+            x1, y1
+        ]
+        c.create_polygon(points, outline=bg_color, fill=bg_color, smooth=True, tags="btn")
+        c.create_text(w_curr/2, h_curr/2, text=label, font=size, fill=fg, justify="center", tags="btn")
+        
     def on_enter(e):
         new_color = AZUL_CLARO if color == AZUL_MED else AMARILLO_H if color == AMARILLO else color
-        btn.config(bg=new_color)
-    
+        draw_bg(cv, new_color)
+        
     def on_leave(e):
-        btn.config(bg=color)
+        draw_bg(cv, color)
+
+    cv.bind("<Configure>", lambda e: draw_bg(cv, color))
+    cv.bind("<Enter>", on_enter)
+    cv.bind("<Leave>", on_leave)
+    cv.bind("<Button-1>", lambda e: cmd())
     
-    btn.bind("<Enter>", on_enter)
-    btn.bind("<Leave>", on_leave)
-    return btn
+    return cv
 
 
 def make_card(parent, title="", color_top=AZUL, **grid_kwargs):
@@ -96,7 +118,7 @@ def make_topbar(parent, titulo, emoji="", back_cmd=None, bg_color=AZUL):
     
     if back_cmd:
         make_button(bar, "", back_cmd, color=bg_color, fg=BLANCO,
-                   emoji="◀", height=1).pack(side="left", padx=4)
+                   emoji="◀", height=1, width=3).pack(side="left", padx=4)
     
     title_text = f"{emoji} {titulo}" if emoji else titulo
     tk.Label(bar, text=title_text, font=FONT_SUBTIT, bg=bg_color, fg=BLANCO).pack(side="left")
@@ -243,6 +265,50 @@ def ask_integer(title, message, parent=None, min_val=0, max_val=1000):
 
 
 def ask_string(title, message, default="", parent=None):
-    """Pedir entrada de texto al usuario"""
-    from tkinter import simpledialog
-    return simpledialog.askstring(title, message, initialvalue=default)
+    """Pedir entrada de texto al usuario con diseño personalizado"""
+    win = tk.Toplevel(parent)
+    win.title(title)
+    win.geometry("340x220")
+    win.configure(bg=BLANCO)
+    if parent:
+        win.transient(parent)
+    win.grab_set()
+
+    # Centrar la ventana
+    if parent:
+        win.update_idletasks()
+        x = parent.winfo_rootx() + (parent.winfo_width() // 2) - 170
+        y = parent.winfo_rooty() + (parent.winfo_height() // 2) - 110
+        win.geometry(f"+{x}+{y}")
+
+    tk.Label(win, text=title, font=FONT_SUBTIT, bg=BLANCO, fg=AZUL_MED, pady=12).pack()
+    tk.Label(win, text=message, font=FONT_BODY, bg=BLANCO, fg=TEXTO_DARK, wraplength=300).pack(pady=(0, 10))
+
+    e = tk.Entry(win, font=FONT_BODY, bd=0, bg=GRIS_CARD, fg=TEXTO_DARK, justify="center")
+    if default:
+        e.insert(0, default)
+    e.pack(fill="x", padx=30, ipady=8)
+    e.focus()
+
+    resultado = [None]
+    
+    def on_ok(event=None):
+        val = e.get()
+        if val is not None:
+            resultado[0] = val
+            win.destroy()
+
+    def on_cancel(event=None):
+        win.destroy()
+
+    btn_frame = tk.Frame(win, bg=BLANCO, pady=15)
+    btn_frame.pack(fill="x")
+    
+    make_button(btn_frame, "Cancelar", on_cancel, color=ROJO, size=FONT_SMALL, height=1, width=10).pack(side="left", padx=10)
+    make_button(btn_frame, "Aceptar", on_ok, color=VERDE_CLARO, size=FONT_SMALL, height=1, width=10).pack(side="right", padx=10)
+    
+    win.bind("<Return>", on_ok)
+    win.bind("<Escape>", on_cancel)
+    
+    parent.wait_window(win) if parent else win.wait_window(win)
+    return resultado[0]
