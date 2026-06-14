@@ -1,6 +1,7 @@
 import React from 'react';
+import ItemDato from '../atoms/ItemDato';
+import FilaTrabajo from '../molecules/FilaTrabajo';
 
-// Organismo: Ficha técnica y clínica del estado de la suspensión del taxi
 export default function CardHistorial({ vehiculo }) {
   if (!vehiculo) {
     return (
@@ -12,22 +13,23 @@ export default function CardHistorial({ vehiculo }) {
 
   return (
     <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e5ea', textAlign: 'left' }}>
-      <h3 style={{ margin: '0 0 10px 0', color: '#1d1d1f' }}>
+      <h3 style={{ margin: '0 0 16px 0', color: '#1d1d1f', borderBottom: '1px solid #f0f0f0', paddingBottom: '10px' }}>
         Vehículo: <span style={{ color: '#007aff' }}>{vehiculo.placa}</span>
       </h3>
-      <p style={{ margin: '4px 0' }}><strong>Propietario:</strong> {vehiculo.conductor}</p>
-      <p style={{ margin: '4px 0', color: '#86868b' }}><strong>Modelo:</strong> {vehiculo.modelo}</p>
       
-      <h4 style={{ marginTop: '20px', marginBottom: '10px' }}>Historial Clínico:</h4>
-      {vehiculo.reparaciones.map((rep, index) => (
-        <div key={index} style={{ padding: '12px', backgroundColor: '#f5f5f7', borderRadius: '8px', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#86868b' }}>
-            <span>📅 {rep.fecha}</span>
-            <span>👨‍🔧 Mecánico: {rep.mecanico}</span>
-          </div>
-          <p style={{ margin: '6px 0 0 0', fontSize: '14px' }}><strong>Trabajo:</strong> {rep.detalle}</p>
-        </div>
-      ))}
+      <div style={{ marginBottom: '20px' }}>
+        <ItemDato etiqueta="Propietario" valor={vehiculo.propietario?.nombre || 'No asignado'} />
+        <ItemDato etiqueta="Vehículo" valor={vehiculo.marca + ' ' + vehiculo.modelo + ' (' + vehiculo.anio + ')'} colorValor={'#86868b'} />
+      </div>
+      
+      <h4 style={{ margin: '0 0 12px 0', color: '#1d1d1f' }}>Historial de Trabajos:</h4>
+      {(!vehiculo.trabajos || vehiculo.trabajos.length === 0) ? (
+        <p style={{ color: '#86868b', fontSize: '14px' }}>No hay trabajos registrados para este vehículo.</p>
+      ) : (
+        vehiculo.trabajos.map((trabajo) => (
+          <FilaTrabajo key={trabajo.id} trabajo={trabajo} />
+        ))
+      )}
     </div>
   );
 }

@@ -1,20 +1,18 @@
 import React from 'react';
 
 // Átomo: Etiqueta de estado de color condicional
-export default function BadgeEstado({ estado }) {
-  const esDisponible = estado === 'Disponible';
-  
+export default function BadgeEstado({ enUso }) {
   return (
     <span style={{
       fontSize: '13px',
       fontWeight: '600',
       padding: '4px 10px',
       borderRadius: '20px',
-      backgroundColor: esDisponible ? '#e4f9ec' : '#ffeccc',
-      color: esDisponible ? '#107c41' : '#b25e00',
+      backgroundColor: !enUso ? '#e4f9ec' : '#ffeccc',
+      color: !enUso ? '#107c41' : '#b25e00',
       display: 'inline-block'
     }}>
-      {estado}
+      {!enUso ? 'Disponible' : 'En Uso'}
     </span>
   );
 }

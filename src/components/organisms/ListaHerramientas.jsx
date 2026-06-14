@@ -3,7 +3,7 @@ import FilaHerramienta from '../molecules/FilaHerramienta';
 
 // Organismo: Contenedor completo del inventario de herramientas operativas
 export default function ListaHerramientas({ herramientas, onAccionHerramienta }) {
-  const prestadas = herramientas.filter(h => h.estado !== 'Disponible').length;
+  const prestadas = herramientas.filter(h => h.en_uso).length;
 
   return (
     <div style={{ 
@@ -21,7 +21,7 @@ export default function ListaHerramientas({ herramientas, onAccionHerramienta })
         fontSize: '14px',
         color: '#86868b'
       }}>
-        🛠️ Total: <strong>{herramientas.length}</strong> herramientas | ⚠️ En préstamo: <strong style={{ color: '#ff9500' }}>{prestadas}</strong>
+        🛠️ Total: <strong>{herramientas.length}</strong> herramientas | ⚠️ En uso: <strong style={{ color: '#ff9500' }}>{prestadas}</strong>
       </div>
 
       {/* Mapeo modular de herramientas */}

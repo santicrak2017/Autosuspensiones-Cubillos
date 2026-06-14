@@ -4,6 +4,9 @@ import GridOpciones from './components/organisms/GridOpciones';
 import SearchBarPlaca from './components/molecules/SearchBarPlaca';
 import CardHistorial from './components/organisms/CardHistorial';
 import ListaHerramientas from './components/organisms/ListaHerramientas';
+import ModuloRepuestos from './components/organisms/ModuloRepuestos';
+import ModuloContabilidad from './components/organisms/ModuloContabilidad';
+import ModuloAdministrador from './components/organisms/ModuloAdministrador';
 
 export default function App() {
   // 1. ESTADOS DE NAVEGACIÓN Y PLACAS
@@ -11,45 +14,88 @@ export default function App() {
   const [filtroPlaca, setFiltroPlaca] = useState('');
   const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState(null);
 
-  // 2. ESTADO DE HERRAMIENTAS
+  // 2. ESTADO DE HERRAMIENTAS (Adaptado a DB)
   const [herramientas, setHerramientas] = useState([
-    { id: 1, nombre: 'Pistola de impacto neumática', estado: 'Disponible', mecanico: '' },
-    { id: 2, nombre: 'Prensa para bujes de tijera', estado: 'Prestado', mecanico: 'Carlos' },
-    { id: 3, nombre: 'Extractor de terminales de dirección', estado: 'Disponible', mecanico: '' },
-    { id: 4, nombre: 'Torquímetro de 1/2 pulgada', estado: 'Disponible', mecanico: '' },
+    { id: "herr-1", nombre: 'Pistola de impacto neumática', en_uso: false, mecanico_nombre: null, actualizado_en: null },
+    { id: "herr-2", nombre: 'Prensa para bujes de tijera', en_uso: true, mecanico_nombre: 'Carlos', actualizado_en: new Date(Date.now() - 3600000).toISOString() },
+    { id: "herr-3", nombre: 'Extractor de terminales de dirección', en_uso: false, mecanico_nombre: null, actualizado_en: null },
+    { id: "herr-4", nombre: 'Torquímetro de 1/2 pulgada', en_uso: false, mecanico_nombre: null, actualizado_en: null },
   ]);
 
-  // 3. DATOS DE PRUEBA SIMULADOS PARA TAXIS
-  const baseDatosTaxis = [
+  // 3. DATOS DE PRUEBA SIMULADOS PARA VEHICULOS (Acorde a DB)
+  const [baseDatosVehiculos, setBaseDatosVehiculos] = useState([
     { 
-      placa: 'TXA-123', conductor: 'Jorge Cárdenas', modelo: 'Hyundai Atos 2012',
-      reparaciones: [
-        { fecha: '14/05/2026', mecanico: 'Carlos', detalle: 'Cambio de amortiguadores delanteros', repuestos: '2 Amortiguadores Gabriel' }
+      id: "veh-1",
+      placa: 'TXA-123', 
+      marca: 'Hyundai',
+      modelo: 'Atos',
+      anio: 2012,
+      propietario: { id: "prop-1", nombre: 'Jorge Cárdenas' },
+      trabajos: [
+        { 
+          id: "trab-1", 
+          fecha_inicio: '2026-05-14', 
+          descripcion: 'Cambio de amortiguadores delanteros', 
+          mecanico: { nombre: 'Carlos' } 
+        }
       ]
     }
-  ];
-  const listaPlacas = baseDatosTaxis.map(t => t.placa);
+  ]);
+  const listaPlacas = baseDatosVehiculos.map(t => t.placa);
+
+  // 3.5 ESTADO DE REPUESTOS
+  const [repuestos, setRepuestos] = useState([
+    { id: 1, nombre: 'Buje Tijera Mazda 3', stock_actual: 4, stock_minimo: 5 },
+    { id: 2, nombre: 'Amortiguador Gabriel', stock_actual: 12, stock_minimo: 5 }
+  ]);
+
+  // 3.6 ESTADO FINANCIERO (PAGOS Y GASTOS)
+  const [pagos, setPagos] = useState([
+    { id: 'pago-1', monto: 120000, metodo: 'Efectivo', fecha: '2026-06-12', notas: 'Mano de obra y repuestos Mazda' },
+    { id: 'pago-2', monto: 250000, metodo: 'Transferencia', fecha: '2026-06-13', notas: 'Suspensión completa Taxi' }
+  ]);
+
+  const [gastos, setGastos] = useState([
+    { id: 'gasto-1', tipo: 'HERRAMIENTA', descripcion: 'Compra de juego de llaves', monto: 85000, fecha: '2026-06-10' },
+    { id: 'gasto-2', tipo: 'REPUESTO', descripcion: 'Lote de amortiguadores', monto: 140000, fecha: '2026-06-11' }
+  ]);
+
+  // 3.7 ESTADO DE MECANICOS (Directo de la DB)
+  const [mecanicos, setMecanicos] = useState([
+    { id: 'mec-1', nombre: 'Carlos', telefono: '3001234567', especialidad: 'Suspensión', activo: true, creado_en: '2026-01-10T10:00:00.000Z' },
+    { id: 'mec-2', nombre: 'Luis', telefono: '3109876543', especialidad: 'Frenos', activo: true, creado_en: '2026-02-15T11:30:00.000Z' }
+  ]);
 
   // 4. LÓGICA DE INTERACCIÓN
   const manejarSeleccionPlaca = (placa) => {
     setFiltroPlaca(placa);
-    const datos = baseDatosTaxis.find(t => t.placa === placa);
+    const datos = baseDatosVehiculos.find(t => t.placa === placa);
     setVehiculoSeleccionado(datos || null);
   };
 
   const manejarAccionHerramienta = (id) => {
     setHerramientas(herramientas.map(h => {
       if (h.id === id) {
-        if (h.estado === 'Disponible') {
-          const nombreMecanico = prompt("Ingrese el nombre del mecánico que solicita la herramienta:");
+        if (!h.en_uso) {
+          const nombreMecanico = prompt("Ingrese el nombre del mecánico que toma la herramienta:");
           if (!nombreMecanico) return h; 
-          return { ...h, estado: 'Prestado', mecanico: nombreMecanico };
+          return { ...h, en_uso: true, mecanico_nombre: nombreMecanico, actualizado_en: new Date().toISOString() };
         } else {
-          return { ...h, estado: 'Disponible', mecanico: '' };
+          return { ...h, en_uso: false, mecanico_nombre: null, actualizado_en: new Date().toISOString() };
         }
       }
       return h;
     }));
+  };
+
+  const manejarAgregarRepuesto = (nuevoAñadido) => {
+    setRepuestos([nuevoAñadido, ...repuestos]);
+  };
+
+  const manejarAgregarVehiculoYTrabajo = (nuevoVehiculo) => {
+    setBaseDatosVehiculos([nuevoVehiculo, ...baseDatosVehiculos]);
+    // Alertar al usuario que la placa se agregó
+    alert(`Vehículo con placa ${nuevoVehiculo.placa} y su trabajo han sido registrados exitosamente.`);
   };
 
   // 5. RENDERIZADO CONDICIONAL DE PANTALLAS
@@ -66,7 +112,7 @@ export default function App() {
               setFiltro={(valor) => {
                 setFiltroPlaca(valor);
                 if(!valor) setVehiculoSeleccionado(null);
-                const exacto = baseDatosTaxis.find(t => t.placa === valor);
+                const exacto = baseDatosVehiculos.find(t => t.placa === valor);
                 if(exacto) setVehiculoSeleccionado(exacto);
               }}
               placasExistentes={listaPlacas}
@@ -89,11 +135,22 @@ export default function App() {
           </div>
         );
       case 'administrador':
-        return <div><h3>Módulo Administrador</h3><p>Controles de acceso del taller.</p></div>;
+        return (
+          <ModuloAdministrador 
+            mecanicos={mecanicos}
+            setMecanicos={setMecanicos}
+            stats={{
+              vehiculos: baseDatosVehiculos.length,
+              herramientas: herramientas.length,
+              repuestos: repuestos.length
+            }}
+            onAgregarVehiculoTrabajo={manejarAgregarVehiculoYTrabajo}
+          />
+        );
       case 'repuestos':
-        return <div><h3>Stock de Repuestos</h3><p>Gestión de inventario crítico.</p></div>;
+        return <ModuloRepuestos repuestos={repuestos} onAgregarRepuesto={manejarAgregarRepuesto} />;
       case 'contabilidad':
-        return <div><h3>Contabilidad</h3><p>Panel financiero y cuentas rápidas.</p></div>;
+        return <ModuloContabilidad pagos={pagos} gastos={gastos} />;
       default:
         return <GridOpciones onSeleccionar={(id) => setActiveTab(id)} />;
     }
