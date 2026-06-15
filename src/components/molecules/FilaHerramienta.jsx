@@ -28,8 +28,8 @@ export default function FilaHerramienta({ herramienta, onAccion }) {
         </strong>
         <span style={{ fontSize: '13px', color: '#86868b' }}>
           {isDisponible 
-            ? '📦 En estante' 
-            : `👨‍🔧 En uso por: ${herramienta.mecanico_nombre} | ⏱ Desde: ${formatearFecha(herramienta.actualizado_en)}`
+            ? ' En estante' 
+            : ` En uso por: ${herramienta.mecanico_nombre} (${herramienta.mecanico_codigo}) | ⏱ Desde: ${formatearFecha(herramienta.actualizado_en)}`
           }
         </span>
       </div>

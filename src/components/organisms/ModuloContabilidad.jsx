@@ -1,9 +1,10 @@
 import React from 'react';
 import ResumenFinanciero from '../molecules/ResumenFinanciero';
 import FilaTransaccion from '../molecules/FilaTransaccion';
+import FormularioTransaccion from '../molecules/FormularioTransaccion';
 
 // Organismo: Módulo completo de contabilidad
-export default function ModuloContabilidad({ pagos, gastos }) {
+export default function ModuloContabilidad({ pagos, gastos, onAgregarTransaccion }) {
   // Unificar las transacciones para mostrarlas en una sola lista cronológica
   const transacciones = [
     ...pagos.map(p => ({
@@ -36,6 +37,8 @@ export default function ModuloContabilidad({ pagos, gastos }) {
       </p>
 
       <ResumenFinanciero ingresos={totalIngresos} egresos={totalEgresos} />
+
+      <FormularioTransaccion onAgregar={onAgregarTransaccion} />
 
       <h4 style={{ margin: '0 0 10px 0', color: '#1d1d1f', fontSize: '15px' }}>Historial de Transacciones</h4>
       <div style={{ 

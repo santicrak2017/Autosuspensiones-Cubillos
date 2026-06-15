@@ -8,12 +8,21 @@ export default function FormularioMecanico({ onAgregar }) {
   const [telefono, setTelefono] = useState('');
   const [especialidad, setEspecialidad] = useState('');
 
+  // Generar código único para el mecánico
+  const generarCodigoMecanico = () => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    const codigo = `MEC-${String(random).padStart(4, '0')}`;
+    return codigo;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!nombre.trim()) return;
 
     onAgregar({
       id: `mec-${Date.now()}`,
+      codigo: generarCodigoMecanico(),
       nombre: nombre.trim(),
       telefono: telefono.trim(),
       especialidad: especialidad.trim() || 'General',

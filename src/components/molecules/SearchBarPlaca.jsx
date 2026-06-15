@@ -2,9 +2,12 @@ import React from 'react';
 
 // Molécula: Entrada de texto simple para filtrar las placas del taller
 export default function SearchBarPlaca({ filtro, setFiltro, placasExistentes, onSeleccionarPlaca }) {
-  const sugerencias = placasExistentes.filter(placa => 
-    filtro && placa.toLowerCase().includes(filtro.toLowerCase()) && placa !== filtro
-  );
+  // Mostrar todas las placas si el filtro está vacío, sino filtrar según lo que escribe
+  const sugerencias = filtro === '' 
+    ? placasExistentes 
+    : placasExistentes.filter(placa => 
+        placa.toLowerCase().includes(filtro.toLowerCase())
+      );
 
   return (
     <div style={{ width: '100%', marginBottom: '20px', textAlign: 'left' }}>
@@ -43,7 +46,7 @@ export default function SearchBarPlaca({ filtro, setFiltro, placasExistentes, on
               onClick={() => onSeleccionarPlaca(placa)}
               style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid #f5f5f7' }}
             >
-              🚖 Placa: <strong style={{ color: '#007aff' }}>{placa}</strong>
+              Placa: <strong style={{ color: '#007aff' }}>{placa}</strong>
             </li>
           ))}
         </ul>
